@@ -1,0 +1,63 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DSP Speed Alert Map – 30 Day</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+html,body,#map{height:100%;margin:0;font-family:Arial,sans-serif}
+.panel{position:absolute;z-index:1000;top:12px;left:12px;background:white;padding:12px 14px;border-radius:12px;
+box-shadow:0 2px 12px #0003;max-width:330px}
+.panel h2{margin:0 0 5px;font-size:18px}
+.panel p{margin:4px 0;font-size:12px;line-height:1.35}
+.badge{display:inline-block;padding:3px 7px;border-radius:999px;background:#eee;margin:2px;font-size:11px}
+.legend{position:absolute;z-index:1000;bottom:20px;left:12px;background:white;padding:9px 11px;border-radius:10px;
+box-shadow:0 2px 12px #0003;font-size:12px}
+.speed{font-size:22px;font-weight:800;margin:6px 0}
+.repeat{font-weight:700}
+a.btn{display:inline-block;margin-top:8px;padding:7px 9px;background:#222;color:white;text-decoration:none;border-radius:7px}
+</style>
+</head>
+<body>
+<div class="panel">
+<h2>🚚 DSP Speed Alert Map</h2>
+<p><b>Past 30 days:</b> 12 speeding events</p>
+<p><b>Hotspots:</b> 10 mapped areas, including repeat locations and a speed-limit transition.</p>
+<span class="badge">🔴 Speed alert</span><span class="badge">🔥 Repeat hotspot</span><span class="badge">⚠️ Verify pin</span>
+<p>Tap any marker for the speed limit and coaching note.</p>
+</div>
+<div id="map"></div>
+<div class="legend"><b>Driver reminder:</b> Posted signs and property rules always control. This is a coaching map, not a substitute for roadway signage.</div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const spots = [{"name": "Oakleaf High School Property", "lat": 30.16982, "lon": -81.83393, "limit": "5 MPH", "events": 1, "area": "Orange Park / Oakleaf", "status": "Confirmed area", "note": "5 MPH once entering school property. Do not carry the 35 MPH roadway speed onto school property.", "search": "Oakleaf High School 4035 Plantation Oaks Blvd Orange Park FL"}, {"name": "Townsend Rd / Jammes Rd Area", "lat": 30.21894, "lon": -81.74774, "limit": "40 MPH", "events": 1, "area": "Jacksonville", "status": "Confirmed area", "note": "40 MPH roadway speeding alert east of I-295 in the Townsend/Jammes area.", "search": "Townsend Rd Jammes Rd Jacksonville FL"}, {"name": "Harvest Cove Dr / Sleepy Hollow Rd", "lat": 30.09205, "lon": -81.7661, "limit": "15 MPH", "events": 2, "area": "Middleburg", "status": "Confirmed area / repeat hotspot", "note": "Repeat low-speed residential hotspot. Two alerts in the 30-day set.", "search": "Harvest Cove Dr Sleepy Hollow Rd Middleburg FL"}, {"name": "CR-220 / Town Center Blvd", "lat": 30.1001, "lon": -81.7107, "limit": "35 MPH", "events": 2, "area": "Fleming Island", "status": "Confirmed area / repeat hotspot", "note": "Repeat 35 MPH hotspot near Town Center Blvd / CR-220 shopping area.", "search": "County Road 220 Town Center Blvd Fleming Island FL"}, {"name": "Waterford Oaks / Crane Hill Ct", "lat": 30.1655, "lon": -81.8305, "limit": "20 MPH", "events": 1, "area": "Clay County", "status": "Provisional pin", "note": "Low-speed residential alert near Waterford Oaks Dr and Crane Hill Ct. Pin should be field-verified.", "search": "Waterford Oaks Dr Crane Hill Ct Clay County FL"}, {"name": "Tynes Blvd / N Pinto Dr Area", "lat": 30.105, "lon": -81.824, "limit": "25 MPH", "events": 1, "area": "Middleburg", "status": "Provisional pin", "note": "25 MPH speeding alert on Tynes Blvd area near N Pinto Dr / Donato Ln.", "search": "Tynes Blvd N Pinto Dr Middleburg FL"}, {"name": "Tynes Elementary School", "lat": 30.106, "lon": -81.8215, "limit": "25 MPH", "events": 1, "area": "Middleburg", "status": "Confirmed school / provisional road pin", "note": "25 MPH school-area hotspot directly by Tynes Elementary School.", "search": "Tynes Elementary School 1550 Tynes Blvd Middleburg FL"}, {"name": "Lake City Area \u2013 NW Samme\u2026", "lat": 30.189, "lon": -82.64, "limit": "25 MPH", "events": 1, "area": "Lake City", "status": "Needs exact road confirmation", "note": "Screenshot confirms a 25 MPH alert in the Lake City area; exact road name/pin still needs confirmation.", "search": "Lake City FL"}, {"name": "Route 739 / Brookside Ct Area", "lat": 30.115, "lon": -81.85, "limit": "40 MPH", "events": 1, "area": "Clay County", "status": "Provisional pin", "note": "40 MPH alert near Brookside Ct / Route 739 / Rideout Ferry Rd. Exact pin should be field-verified.", "search": "Rideout Ferry Rd Brookside Ct Clay County FL"}, {"name": "Moosehead / Canopy Oaks Transition", "lat": 30.1715, "lon": -81.837, "limit": "20 \u2192 35 MPH", "events": 1, "area": "Oakleaf / Clay County", "status": "Confirmed road names / provisional pin", "note": "Speed-limit transition hotspot near Moosehead Dr, Canopy Oaks Dr, Akron Oaks Dr and Bedrock Dr.", "search": "Moosehead Dr Canopy Oaks Dr Orange Park FL"}];
+const map = L.map('map').setView([30.15,-81.85], 9);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+ maxZoom:19, attribution:'&copy; OpenStreetMap contributors'
+}).addTo(map);
+
+const group = L.featureGroup().addTo(map);
+spots.forEach(s => {
+ const isRepeat = s.events > 1;
+ const provisional = /Provisional|Needs/.test(s.status);
+ const color = isRepeat ? '#9b111e' : (provisional ? '#d97706' : '#d71920');
+ const marker = L.circleMarker([s.lat,s.lon], {
+   radius: isRepeat ? 11 : 9, color:'#fff', weight:2, fillColor:color, fillOpacity:.95
+ }).addTo(group);
+ const g = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(s.search);
+ marker.bindPopup(`
+   <div style="min-width:230px">
+   <b>${isRepeat?'🔥 ':''}${s.name}</b>
+   <div class="speed">${s.limit}</div>
+   <div><b>Area:</b> ${s.area}</div>
+   <div><b>30-day events:</b> ${s.events}</div>
+   <div><b>Location status:</b> ${s.status}</div>
+   <p>${s.note}</p>
+   <a class="btn" target="_blank" href="${g}">Open area in Google Maps</a>
+   </div>`);
+});
+map.fitBounds(group.getBounds().pad(.15));
+</script>
+</body>
+</html>
